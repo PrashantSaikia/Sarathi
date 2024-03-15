@@ -14,7 +14,7 @@ ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 def load_vectorstore():
     # Create the HF embeddings
     model_name = "sentence-transformers/all-mpnet-base-v2"
-    model_kwargs = {'device': 'mps'}
+    model_kwargs = {'device': 'cpu'}
     encode_kwargs = {'normalize_embeddings': False}
 
     hf_embeddings = HuggingFaceEmbeddings(
