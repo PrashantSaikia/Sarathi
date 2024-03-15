@@ -1,6 +1,6 @@
-import os, dotenv, anthropic, panel, openai
-from langchain_openai import OpenAIEmbeddings
+import os, dotenv, anthropic, panel
 from langchain_community.vectorstores import Chroma
+from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
 
@@ -9,8 +9,6 @@ panel.extension()
 # Set API key
 dotenv.load_dotenv()
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-openai.api_key = OPENAI_API_KEY
 
 @panel.cache
 def load_vectorstore():
@@ -29,12 +27,28 @@ def load_vectorstore():
         docs = splitter.split_documents(data)
 
         # Embed the documents and store them in a Chroma DB
-        embedding=OpenAIEmbeddings(openai_api_key = openai.api_key)
-        vectorstore = Chroma.from_documents(documents=docs,embedding=embedding, persist_directory="./chroma_db")
+        model_name = "sentence-transformers/all-mpnet-base-v2"
+        model_kwargs = {'device': 'mps'}
+        encode_kwargs = {'normalize_embeddings': False}
+
+        hf_embeddings = HuggingFaceEmbeddings(
+                            model_name=model_name,
+                            model_kwargs=model_kwargs,
+                            encode_kwargs=encode_kwargs
+                        )
+        vectorstore = Chroma.from_documents(documents=docs,embedding=hf_embeddings, persist_directory="./chroma_db")
     else:
         # load ChromaDB from disk
-        embedding=OpenAIEmbeddings(openai_api_key = openai.api_key)
-        vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embedding)
+        model_name = "sentence-transformers/all-mpnet-base-v2"
+        model_kwargs = {'device': 'mps'}
+        encode_kwargs = {'normalize_embeddings': False}
+
+        hf_embeddings = HuggingFaceEmbeddings(
+                            model_name=model_name,
+                            model_kwargs=model_kwargs,
+                            encode_kwargs=encode_kwargs
+                        )
+        vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=hf_embeddings)
 
     return vectorstore
 
@@ -93,7 +107,7 @@ chat_interface = panel.chat.ChatInterface(
     sizing_mode="stretch_width", 
     callback_exception='verbose',
     message_params=dict(
-                default_avatars={"Sarathi": "S", "User": "U"}, #👽, 🥸
+                default_avatars={"Sarathi": "S", "User": "U"},
                 reaction_icons={"like": "thumb-up"},
             ),
 )
@@ -106,5 +120,3 @@ chat_interface.send(
 template = panel.template.BootstrapTemplate(title="Sarathi", favicon="favicon.png", header_background = "#000000", main=[panel.Tabs( ('Chat', chat_interface), dynamic=True )])
 
 template.servable()
-
-
