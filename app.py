@@ -12,6 +12,17 @@ ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
 
 @panel.cache
 def load_vectorstore():
+    # Create the HF embeddings
+    model_name = "sentence-transformers/all-mpnet-base-v2"
+    model_kwargs = {'device': 'mps'}
+    encode_kwargs = {'normalize_embeddings': False}
+
+    hf_embeddings = HuggingFaceEmbeddings(
+                        model_name=model_name,
+                        model_kwargs=model_kwargs,
+                        encode_kwargs=encode_kwargs
+                    )
+
     # If the vector embeddings of the documents have not been created
     if not os.path.isfile('chroma_db/chroma.sqlite3'):
 
@@ -27,27 +38,9 @@ def load_vectorstore():
         docs = splitter.split_documents(data)
 
         # Embed the documents and store them in a Chroma DB
-        model_name = "sentence-transformers/all-mpnet-base-v2"
-        model_kwargs = {'device': 'mps'}
-        encode_kwargs = {'normalize_embeddings': False}
-
-        hf_embeddings = HuggingFaceEmbeddings(
-                            model_name=model_name,
-                            model_kwargs=model_kwargs,
-                            encode_kwargs=encode_kwargs
-                        )
         vectorstore = Chroma.from_documents(documents=docs,embedding=hf_embeddings, persist_directory="./chroma_db")
     else:
         # load ChromaDB from disk
-        model_name = "sentence-transformers/all-mpnet-base-v2"
-        model_kwargs = {'device': 'mps'}
-        encode_kwargs = {'normalize_embeddings': False}
-
-        hf_embeddings = HuggingFaceEmbeddings(
-                            model_name=model_name,
-                            model_kwargs=model_kwargs,
-                            encode_kwargs=encode_kwargs
-                        )
         vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=hf_embeddings)
 
     return vectorstore
